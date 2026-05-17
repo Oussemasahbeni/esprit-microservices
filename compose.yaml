@@ -1,0 +1,82 @@
+services:
+  postgres:
+    container_name: postgres-esprit
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: esprit
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "username", "-d", "esprit" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  consul:
+    image: hashicorp/consul:1.22
+    container_name: consul
+    ports:
+      - "8500:8500"   # UI + HTTP API
+      - "8600:8600/udp"  # DNS
+    command: "agent -server -bootstrap-expect=1 -ui -client=0.0.0.0 -data-dir=/consul/data"
+    volumes:
+      - consul_data:/consul/data
+    healthcheck:
+      test: [ "CMD", "consul", "members" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  keycloak:
+    container_name: keycloak-esprit
+    image: quay.io/keycloak/keycloak:26.6
+    ports:
+      - "9000:8080" #  web interface
+      - "9001:9000" #  health check
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: username
+      KC_DB_PASSWORD: password
+    volumes:
+      - ./keycloak/kc-providers/jars:/opt/keycloak/providers/
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - start-dev
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/ready" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+  mail-dev:
+    container_name: mail-dev-esprit
+    image: maildev/maildev
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+#  localstack:
+#    image: localstack/localstack
+#    container_name: localstack
+#    ports:
+#      - "4566:4566"
+#    environment:
+#      - SERVICES=s3
+#      - DOCKER_HOST=unix:///var/run/docker.sock
+#    volumes:
+#      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+#      - "/var/run/docker.sock:/var/run/docker.sock"
+
+volumes:
+  postgres_data:
+  consul_data:
