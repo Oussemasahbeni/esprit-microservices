@@ -48,6 +48,7 @@ services:
       KC_DB_PASSWORD: password
     volumes:
       - ./keycloak/kc-providers/jars:/opt/keycloak/providers/
+      - ./keycloak/kc-realm:/opt/keycloak/data/import/
     depends_on:
       postgres:
         condition: service_healthy
