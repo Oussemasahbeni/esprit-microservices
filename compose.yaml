@@ -54,6 +54,7 @@ services:
         condition: service_healthy
     command:
       - start-dev
+      - --import-realm
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health/ready" ]
       interval: 15s
@@ -77,6 +78,24 @@ services:
 #    volumes:
 #      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
 #      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  reservation:
+    build: ./reservation
+    container_name: reservation-service
+    ports:
+      - "8083:8083"
+    environment:
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      DB_HOST: postgres
+      DB_USERNAME: username
+      DB_PASSWORD: password
+      KEYCLOAK_URL: http://keycloak:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
 
 volumes:
   postgres_data:

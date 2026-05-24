@@ -19,10 +19,10 @@
 
     <properties>
         <revision>1.0-SNAPSHOT</revision>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>25</java.version>
+        <java.version>21</java.version>
         <spring-cloud.version>2025.1.1</spring-cloud.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
@@ -34,6 +34,7 @@
         <module>gateway</module>
         <module>demo1</module>
         <module>demo2</module>
+        <module>reservation</module>
     </modules>
 
 

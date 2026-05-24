@@ -34,7 +34,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/api-docs/**",
                                 "/demo1/v3/api-docs",
-                                "/demo2/v3/api-docs"
+                                "/demo2/v3/api-docs",
+                                "/reservation/v3/api-docs"
                         ).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(

@@ -24,6 +24,11 @@ public class FallbackController {
         return buildFallback("demo2", "Product service is currently unavailable");
     }
 
+    @GetMapping("/reservation")
+    public ResponseEntity<Map<String, Object>> reservationFallback() {
+        return buildFallback("reservation", "Reservation service is currently unavailable");
+    }
+
     private ResponseEntity<Map<String, Object>> buildFallback(String service, String message) {
         return ResponseEntity
                 .status(HttpStatus.SERVICE_UNAVAILABLE)

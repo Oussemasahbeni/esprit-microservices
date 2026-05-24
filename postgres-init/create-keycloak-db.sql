@@ -1,3 +1,4 @@
 CREATE DATABASE keycloak;
 CREATE DATABASE demo1_db;
 CREATE DATABASE demo2_db;
+CREATE DATABASE reservation_db;
