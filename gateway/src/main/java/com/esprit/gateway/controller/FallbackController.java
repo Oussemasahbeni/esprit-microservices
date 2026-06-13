@@ -14,14 +14,19 @@ import static java.time.Instant.now;
 @RequestMapping("/fallback")
 public class FallbackController {
 
-    @GetMapping("/demo1")
-    public ResponseEntity<Map<String, Object>> demo1Fallback() {
-        return buildFallback("demo1", "User service is currently unavailable");
+    @GetMapping("/employee-management")
+    public ResponseEntity<Map<String, Object>> employeeManagementFallback() {
+        return buildFallback("employee-management", "Employee management service is currently unavailable");
     }
 
-    @GetMapping("/demo2")
-    public ResponseEntity<Map<String, Object>> demo2Fallback() {
-        return buildFallback("demo2", "Product service is currently unavailable");
+    @GetMapping("/menu-management")
+    public ResponseEntity<Map<String, Object>> menuManagementFallback() {
+        return buildFallback("menu-management", "Menu management service is currently unavailable");
+    }
+
+    @GetMapping("/delivery-management")
+    public ResponseEntity<Map<String, Object>> deliveryManagementFallback() {
+        return buildFallback("delivery-management", "Delivery management service is currently unavailable");
     }
 
     @GetMapping("/reservation")

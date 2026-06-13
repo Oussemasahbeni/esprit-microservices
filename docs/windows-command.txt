@@ -1,0 +1,11 @@
+$json = Get-Content -Raw consul-kv.json -Encoding UTF8 | ConvertFrom-Json
+
+foreach ($item in $json) {
+    $key = $item.key
+    $value = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($item.value))
+
+    # Use Consul CLI via docker
+    $value | docker exec -i consul consul kv put $key -
+
+    Write-Host "Imported: $key" -ForegroundColor Green
+}
