@@ -43,7 +43,8 @@ public class SecurityConfig {
                         oauth2 ->
                                 oauth2.jwt(
                                         token ->
-                                                token.jwtAuthenticationConverter(new KeycloakJwtAuthenticationConverter())));
+                                                token.jwtAuthenticationConverter(new KeycloakJwtAuthenticationConverter()))
+                );
 
         return http.build();
     }

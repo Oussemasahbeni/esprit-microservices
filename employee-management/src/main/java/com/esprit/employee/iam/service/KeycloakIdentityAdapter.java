@@ -150,7 +150,7 @@ public class KeycloakIdentityAdapter implements IdentityGateway {
             }
 
             if (sendEmail) {
-                sendRequiredActionEmail(user, userId, requiredActionsAliases);
+//                sendRequiredActionEmail(user, userId, requiredActionsAliases);
             }
 
 

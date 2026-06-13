@@ -30,3 +30,8 @@ resilience4j:
         slow-call-rate-threshold: 50
         # how long a call must take before we count it as slow
         slow-call-duration-threshold: 2s
+
+logging:
+  level:
+    org.springframework.cloud.gateway: trace
+    org.springframework.security: trace
