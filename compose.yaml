@@ -79,6 +79,24 @@ services:
 #      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
 #      - "/var/run/docker.sock:/var/run/docker.sock"
 
+  reservation-postgres:
+    container_name: reservation-postgres
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: reservation_user
+      POSTGRES_PASSWORD: reservation_pass
+      POSTGRES_DB: reservation_db
+    volumes:
+      - reservation_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "reservation_user", "-d", "reservation_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   reservation:
     build: ./reservation
     container_name: reservation-service
@@ -87,12 +105,14 @@ services:
     environment:
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
-      DB_HOST: postgres
-      DB_USERNAME: username
-      DB_PASSWORD: password
+      DB_HOST: reservation-postgres
+      DB_PORT: 5432
+      DB_NAME: reservation_db
+      DB_USERNAME: reservation_user
+      DB_PASSWORD: reservation_pass
       KEYCLOAK_URL: http://keycloak:8080
     depends_on:
-      postgres:
+      reservation-postgres:
         condition: service_healthy
       consul:
         condition: service_healthy
@@ -100,3 +120,4 @@ services:
 volumes:
   postgres_data:
   consul_data:
+  reservation_postgres_data:
