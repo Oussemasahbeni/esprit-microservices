@@ -27,6 +27,23 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:9000/realms/esprit}
+
+keycloak:
+  realm: esprit
+  client-id: esprit-backend
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:lkoPxx5fDQ6DwyFxb2ruHFmcMziZxtTO}
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9000}
+  frontend-client-id: esprit-frontend
+
+springdoc:
+  swagger-ui:
+    operationsSorter: method
+    display-request-duration: true
 
 server:
   port: 8084

@@ -86,6 +86,33 @@
         "clientRole": false,
         "containerId": "7d1b2e4d-74c1-4779-a8b6-dc8edcde1221",
         "attributes": {}
+      },
+      {
+        "id": "b1a2c3d4-0001-4a00-9000-000000000001",
+        "name": "admin",
+        "description": "Platform administrator",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "7d1b2e4d-74c1-4779-a8b6-dc8edcde1221",
+        "attributes": {}
+      },
+      {
+        "id": "b1a2c3d4-0002-4a00-9000-000000000002",
+        "name": "manager",
+        "description": "Restaurant/cafe manager (represents a restaurant)",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "7d1b2e4d-74c1-4779-a8b6-dc8edcde1221",
+        "attributes": {}
+      },
+      {
+        "id": "b1a2c3d4-0003-4a00-9000-000000000003",
+        "name": "delivery-manager",
+        "description": "Platform delivery manager (internal employee)",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "7d1b2e4d-74c1-4779-a8b6-dc8edcde1221",
+        "attributes": {}
       }
     ],
     "client": {
