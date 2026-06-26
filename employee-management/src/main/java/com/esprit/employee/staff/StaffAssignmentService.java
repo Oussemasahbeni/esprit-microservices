@@ -30,7 +30,7 @@ public class StaffAssignmentService {
     public static final int SLOT_DURATION_HOURS = 2;
 
     /** How many overlapping reservations one active employee can serve at the same time. */
-    public static final int MAX_RESERVATIONS_PER_EMPLOYEE = 5;
+    public static final int MAX_RESERVATIONS_PER_EMPLOYEE = 10;
 
     private final EmployeeRepository employeeRepository;
     private final StaffAssignmentRepository assignmentRepository;
