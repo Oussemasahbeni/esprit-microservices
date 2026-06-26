@@ -1,10 +1,13 @@
 package com.esprit.reservation.service;
 
-import com.esprit.reservation.entity.*;
+import com.esprit.reservation.client.EmployeeManagementClient;
+import com.esprit.reservation.client.StaffAvailabilityResponse;
 import com.esprit.reservation.domain.*;
 import com.esprit.reservation.dto.*;
+import com.esprit.reservation.entity.*;
 import com.esprit.reservation.mapper.ReservationMapper;
 import com.esprit.reservation.mapper.WaitlistMapper;
+import com.esprit.reservation.messaging.ReservationEventPublisher;
 import com.esprit.reservation.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +38,10 @@ public class ReservationServiceTest {
     private ReservationMapper reservationMapper;
     @Mock
     private WaitlistMapper waitlistMapper;
+    @Mock
+    private EmployeeManagementClient employeeManagementClient;
+    @Mock
+    private ReservationEventPublisher eventPublisher;
 
     @InjectMocks
     private ReservationService reservationService;
@@ -54,6 +61,10 @@ public class ReservationServiceTest {
 
         futureDate = LocalDate.now().plusDays(2);
         startTime = LocalTime.of(19, 0);
+
+        // Default: employee service reports sufficient staff so existing tests are unaffected
+        when(employeeManagementClient.checkStaffAvailability(any(), any()))
+                .thenReturn(new StaffAvailabilityResponse(futureDate, startTime, 3, true));
     }
 
     @Test
