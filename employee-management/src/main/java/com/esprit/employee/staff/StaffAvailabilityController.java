@@ -7,8 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/staff")
@@ -19,8 +18,7 @@ public class StaffAvailabilityController {
 
     @GetMapping("/availability")
     public StaffAvailabilityResponse checkAvailability(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime time) {
-        return staffAvailabilityService.checkAvailability(date, time);
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateTime) {
+        return staffAvailabilityService.checkAvailability(dateTime);
     }
 }

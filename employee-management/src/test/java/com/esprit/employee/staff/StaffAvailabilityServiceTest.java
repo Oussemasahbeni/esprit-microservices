@@ -1,8 +1,5 @@
 package com.esprit.employee.staff;
 
-import com.esprit.employee.employee.Employee;
-import com.esprit.employee.employee.EmployeeRepository;
-import com.esprit.employee.employee.EmployeeStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -10,8 +7,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -20,77 +17,56 @@ import static org.mockito.Mockito.when;
 class StaffAvailabilityServiceTest {
 
     @Mock
-    private EmployeeRepository employeeRepository;
+    private StaffAssignmentService staffAssignmentService;
 
     @InjectMocks
     private StaffAvailabilityService staffAvailabilityService;
 
-    private final LocalDate date = LocalDate.of(2026, 5, 25);
-    private final LocalTime time = LocalTime.of(20, 0);
+    private final LocalDateTime fridayNight = LocalDateTime.of(2026, 5, 25, 20, 0);
 
     @Test
-    void checkAvailability_withActiveStaff_returnsSufficient() {
-        when(employeeRepository.findAll()).thenReturn(List.of(
-                activeEmployee("Alice"),
-                activeEmployee("Bob"),
-                activeEmployee("Carlos")
-        ));
+    void checkAvailability_withFreeStaff_returnsSufficient() {
+        when(staffAssignmentService.countAvailableStaff(LocalDate.of(2026, 5, 25), LocalTime.of(20, 0)))
+                .thenReturn(3);
 
-        StaffAvailabilityResponse response = staffAvailabilityService.checkAvailability(date, time);
+        StaffAvailabilityResponse response = staffAvailabilityService.checkAvailability(fridayNight);
 
         assertThat(response.availableStaff()).isEqualTo(3);
         assertThat(response.sufficient()).isTrue();
-        assertThat(response.date()).isEqualTo(date);
-        assertThat(response.time()).isEqualTo(time);
+        assertThat(response.dateTime()).isEqualTo(fridayNight);
     }
 
     @Test
-    void checkAvailability_withNoActiveStaff_returnsInsufficient() {
-        // Friday night: 30 reservations but 0 active employees → manager must be warned
-        when(employeeRepository.findAll()).thenReturn(List.of(
-                inactiveEmployee("Dave"),
-                inactiveEmployee("Eve")
-        ));
+    void checkAvailability_whenEveryoneAtCapacity_returnsInsufficient() {
+        when(staffAssignmentService.countAvailableStaff(LocalDate.of(2026, 5, 25), LocalTime.of(20, 0)))
+                .thenReturn(0);
 
-        StaffAvailabilityResponse response = staffAvailabilityService.checkAvailability(date, time);
+        StaffAvailabilityResponse response = staffAvailabilityService.checkAvailability(fridayNight);
 
-        assertThat(response.availableStaff()).isEqualTo(0);
+        assertThat(response.availableStaff()).isZero();
         assertThat(response.sufficient()).isFalse();
     }
 
     @Test
-    void checkAvailability_withMixedStatus_countsOnlyActive() {
-        when(employeeRepository.findAll()).thenReturn(List.of(
-                activeEmployee("Alice"),
-                inactiveEmployee("Dave"),
-                suspendedEmployee("Frank")
-        ));
+    void checkAvailability_withOneFreeEmployee_returnsSufficient() {
+        when(staffAssignmentService.countAvailableStaff(LocalDate.of(2026, 5, 25), LocalTime.of(20, 0)))
+                .thenReturn(1);
 
-        StaffAvailabilityResponse response = staffAvailabilityService.checkAvailability(date, time);
+        StaffAvailabilityResponse response = staffAvailabilityService.checkAvailability(fridayNight);
 
         assertThat(response.availableStaff()).isEqualTo(1);
         assertThat(response.sufficient()).isTrue();
     }
 
     @Test
-    void checkAvailability_withEmptyDatabase_returnsInsufficient() {
-        when(employeeRepository.findAll()).thenReturn(List.of());
+    void checkAvailability_passesDateAndTimeThroughAndPreservesDateTime() {
+        LocalDateTime specificSlot = LocalDateTime.of(2026, 12, 31, 23, 0);
+        when(staffAssignmentService.countAvailableStaff(LocalDate.of(2026, 12, 31), LocalTime.of(23, 0)))
+                .thenReturn(2);
 
-        StaffAvailabilityResponse response = staffAvailabilityService.checkAvailability(date, time);
+        StaffAvailabilityResponse response = staffAvailabilityService.checkAvailability(specificSlot);
 
-        assertThat(response.availableStaff()).isEqualTo(0);
-        assertThat(response.sufficient()).isFalse();
-    }
-
-    private Employee activeEmployee(String name) {
-        return Employee.builder().firstName(name).status(EmployeeStatus.ACTIVE).build();
-    }
-
-    private Employee inactiveEmployee(String name) {
-        return Employee.builder().firstName(name).status(EmployeeStatus.INACTIVE).build();
-    }
-
-    private Employee suspendedEmployee(String name) {
-        return Employee.builder().firstName(name).status(EmployeeStatus.SUSPENDED).build();
+        assertThat(response.dateTime()).isEqualTo(specificSlot);
+        assertThat(response.availableStaff()).isEqualTo(2);
     }
 }

@@ -1,13 +1,10 @@
 package com.esprit.employee.staff;
 
-import com.esprit.employee.employee.EmployeeRepository;
-import com.esprit.employee.employee.EmployeeStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -15,20 +12,17 @@ import java.time.LocalTime;
 public class StaffAvailabilityService {
 
     /**
-     * Minimum active employees required to run a shift.
-     * A Friday with 30 reservations but 0 active staff → sufficient=false → manager warned.
+     * Minimum employees that must still be free for the requested slot for it to count as staffed.
+     * A Friday 20:00 where every active waiter is already at capacity → availableStaff=0 →
+     * sufficient=false → reservation service warns the manager.
      */
     private static final int MIN_STAFF_PER_SHIFT = 1;
 
-    private final EmployeeRepository employeeRepository;
+    private final StaffAssignmentService staffAssignmentService;
 
-    public StaffAvailabilityResponse checkAvailability(LocalDate date, LocalTime time) {
-        long count = employeeRepository.findAll()
-                .stream()
-                .filter(e -> EmployeeStatus.ACTIVE == e.getStatus())
-                .count();
-
-        boolean sufficient = count >= MIN_STAFF_PER_SHIFT;
-        return new StaffAvailabilityResponse(date, time, (int) count, sufficient);
+    public StaffAvailabilityResponse checkAvailability(LocalDateTime dateTime) {
+        int available = staffAssignmentService.countAvailableStaff(dateTime.toLocalDate(), dateTime.toLocalTime());
+        boolean sufficient = available >= MIN_STAFF_PER_SHIFT;
+        return new StaffAvailabilityResponse(dateTime, available, sufficient);
     }
 }

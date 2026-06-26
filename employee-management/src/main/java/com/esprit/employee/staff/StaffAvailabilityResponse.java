@@ -1,11 +1,9 @@
 package com.esprit.employee.staff;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 public record StaffAvailabilityResponse(
-        LocalDate date,
-        LocalTime time,
+        LocalDateTime dateTime,
         int availableStaff,
         boolean sufficient
 ) {}

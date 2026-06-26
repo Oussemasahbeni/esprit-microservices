@@ -8,11 +8,13 @@ import com.esprit.employee.iam.model.IdentityUser;
 import com.esprit.employee.iam.model.KeycloakRequiredAction;
 import com.esprit.employee.iam.model.RoleType;
 import com.esprit.employee.iam.service.IdentityGateway;
+import com.esprit.employee.messaging.ScheduleEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -23,6 +25,7 @@ public class EmployeeService {
 
     private final IdentityGateway identityGateway;
     private final EmployeeRepository employeeRepository;
+    private final ScheduleEventPublisher scheduleEventPublisher;
 
     @Transactional(readOnly = true)
     public List<Employee> getAll() {
@@ -134,13 +137,19 @@ public class EmployeeService {
         Employee employee = getById(id);
         identityGateway.enableUser(employee.getKeycloakUserId());
         employee.setStatus(EmployeeStatus.ACTIVE);
-        return employeeRepository.save(employee);
+        Employee saved = employeeRepository.save(employee);
+        long activeCount = employeeRepository.countByStatus(EmployeeStatus.ACTIVE);
+        scheduleEventPublisher.publishScheduleUpdated(LocalDate.now(), (int) activeCount, employee.getKeycloakUserId());
+        return saved;
     }
 
     public Employee disable(Long id) {
         Employee employee = getById(id);
         identityGateway.disableUser(employee.getKeycloakUserId());
         employee.setStatus(EmployeeStatus.INACTIVE);
-        return employeeRepository.save(employee);
+        Employee saved = employeeRepository.save(employee);
+        long activeCount = employeeRepository.countByStatus(EmployeeStatus.ACTIVE);
+        scheduleEventPublisher.publishScheduleUpdated(LocalDate.now(), (int) activeCount, employee.getKeycloakUserId());
+        return saved;
     }
 }

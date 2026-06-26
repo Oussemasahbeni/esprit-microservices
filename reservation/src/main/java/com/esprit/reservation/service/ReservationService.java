@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -70,7 +71,7 @@ public class ReservationService {
         }
 
         // --- Staff availability check (sync via FeignClient) ---
-        StaffAvailabilityResponse staffCheck = safeCheckStaffAvailability(date, startTime);
+        StaffAvailabilityResponse staffCheck = safeCheckStaffAvailability(LocalDateTime.of(date, startTime));
         boolean staffWarning = !staffCheck.sufficient();
         if (staffWarning) {
             log.warn("Insufficient staff ({}) for date {} at {} — reservation confirmed but manager should review",
@@ -157,12 +158,12 @@ public class ReservationService {
         }
     }
 
-    private StaffAvailabilityResponse safeCheckStaffAvailability(LocalDate date, LocalTime time) {
+    private StaffAvailabilityResponse safeCheckStaffAvailability(LocalDateTime dateTime) {
         try {
-            return employeeManagementClient.checkStaffAvailability(date, time);
+            return employeeManagementClient.checkStaffAvailability(dateTime);
         } catch (Exception e) {
             log.warn("Employee management service unavailable — assuming sufficient staff: {}", e.getMessage());
-            return new StaffAvailabilityResponse(date, time, -1, true);
+            return new StaffAvailabilityResponse(dateTime, -1, true);
         }
     }
 
