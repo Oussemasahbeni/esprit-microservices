@@ -24,6 +24,7 @@ public class RabbitMqConfig {
 
     public static final String SCHEDULE_UPDATES_QUEUE       = "schedule.updates.for.reservation";
     public static final String ROUTING_KEY_SCHEDULE_UPDATED = "employee.schedule.updated";
+    public static final String ROUTING_KEY_MANAGER_ALERT    = "manager.staff.alert";
 
     @Bean
     public TopicExchange espritEventsExchange() {

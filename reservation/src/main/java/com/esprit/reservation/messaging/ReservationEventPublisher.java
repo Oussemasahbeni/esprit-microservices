@@ -44,6 +44,12 @@ public class ReservationEventPublisher {
         rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE, RabbitMqConfig.ROUTING_KEY_WAITLISTED, event);
     }
 
+    public void publishManagerAlert(ManagerAlertEvent alert) {
+        log.warn("Publishing manager.staff.alert for date {} — {} reservations, {} staff available (need {})",
+                alert.date(), alert.confirmedReservations(), alert.availableStaff(), alert.neededStaff());
+        rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE, RabbitMqConfig.ROUTING_KEY_MANAGER_ALERT, alert);
+    }
+
     private void publish(Reservation reservation, String routingKey) {
         ReservationEvent event = new ReservationEvent(
                 UUID.randomUUID().toString(),
