@@ -135,21 +135,19 @@ public class EmployeeService {
 
     public Employee enable(Long id) {
         Employee employee = getById(id);
-        identityGateway.enableUser(employee.getKeycloakUserId());
         employee.setStatus(EmployeeStatus.ACTIVE);
         Employee saved = employeeRepository.save(employee);
         long activeCount = employeeRepository.countByStatus(EmployeeStatus.ACTIVE);
-        scheduleEventPublisher.publishScheduleUpdated(LocalDate.now(), (int) activeCount, employee.getKeycloakUserId());
+        scheduleEventPublisher.publishScheduleUpdated(LocalDate.now(), (int) activeCount, String.valueOf(id));
         return saved;
     }
 
     public Employee disable(Long id) {
         Employee employee = getById(id);
-        identityGateway.disableUser(employee.getKeycloakUserId());
         employee.setStatus(EmployeeStatus.INACTIVE);
         Employee saved = employeeRepository.save(employee);
         long activeCount = employeeRepository.countByStatus(EmployeeStatus.ACTIVE);
-        scheduleEventPublisher.publishScheduleUpdated(LocalDate.now(), (int) activeCount, employee.getKeycloakUserId());
+        scheduleEventPublisher.publishScheduleUpdated(LocalDate.now(), (int) activeCount, String.valueOf(id));
         return saved;
     }
 }
