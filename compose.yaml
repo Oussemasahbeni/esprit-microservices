@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: esprit
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./postgres-init:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
@@ -97,25 +97,25 @@ services:
       timeout: 5s
       retries: 5
 
-  reservation:
-    build: ./reservation
-    container_name: reservation-service
-    ports:
-      - "8083:8083"
-    environment:
-      CONSUL_HOST: consul
-      CONSUL_PORT: 8500
-      DB_HOST: reservation-postgres
-      DB_PORT: 5432
-      DB_NAME: reservation_db
-      DB_USERNAME: reservation_user
-      DB_PASSWORD: reservation_pass
-      KEYCLOAK_URL: http://keycloak:8080
-    depends_on:
-      reservation-postgres:
-        condition: service_healthy
-      consul:
-        condition: service_healthy
+#  reservation:
+#    build: ./reservation
+#    container_name: reservation-service
+#    ports:
+#      - "8083:8083"
+#    environment:
+#      CONSUL_HOST: consul
+#      CONSUL_PORT: 8500
+#      DB_HOST: reservation-postgres
+#      DB_PORT: 5432
+#      DB_NAME: reservation_db
+#      DB_USERNAME: reservation_user
+#      DB_PASSWORD: reservation_pass
+#      KEYCLOAK_URL: http://keycloak:8080
+#    depends_on:
+#      reservation-postgres:
+#        condition: service_healthy
+#      consul:
+#        condition: service_healthy
 
 volumes:
   postgres_data:
