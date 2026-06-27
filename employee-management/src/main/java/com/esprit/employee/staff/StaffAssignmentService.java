@@ -27,7 +27,7 @@ import java.util.Optional;
 public class StaffAssignmentService {
 
     /** A reservation occupies its table (and therefore needs serving) for this long. */
-    public static final int SLOT_DURATION_HOURS = 2;
+    public static final int SLOT_DURATION_HOURS = 1;
 
     /** How many overlapping reservations one active employee can serve at the same time. */
     public static final int MAX_RESERVATIONS_PER_EMPLOYEE = 10;
