@@ -97,27 +97,45 @@ services:
       timeout: 5s
       retries: 5
 
-#  reservation:
-#    build: ./reservation
-#    container_name: reservation-service
-#    ports:
-#      - "8083:8083"
-#    environment:
-#      CONSUL_HOST: consul
-#      CONSUL_PORT: 8500
-#      DB_HOST: reservation-postgres
-#      DB_PORT: 5432
-#      DB_NAME: reservation_db
-#      DB_USERNAME: reservation_user
-#      DB_PASSWORD: reservation_pass
-#      KEYCLOAK_URL: http://keycloak:8080
-#    depends_on:
-#      reservation-postgres:
-#        condition: service_healthy
-#      consul:
-#        condition: service_healthy
+  menu-mysql:
+    container_name: menu-mysql
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: menu_management_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - menu_mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-ppassword" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  reservation:
+    build: ./reservation
+    container_name: reservation-service
+    ports:
+      - "8083:8083"
+    environment:
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      DB_HOST: reservation-postgres
+      DB_PORT: 5432
+      DB_NAME: reservation_db
+      DB_USERNAME: reservation_user
+      DB_PASSWORD: reservation_pass
+      KEYCLOAK_URL: http://keycloak:8080
+    depends_on:
+      reservation-postgres:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   consul_data:
   reservation_postgres_data:
+  menu_mysql_data:

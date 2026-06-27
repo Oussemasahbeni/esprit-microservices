@@ -37,3 +37,27 @@ build/
 
 ### Mac OS ###
 .DS_Store
+### Claude Code / Agent files ###
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+*.agent.md
+*agent*.md
+
+### MCP & Config ###
+.mcp.json
+.mcp/
+opencode.jsonc
+.codegraph/
+
+### Settings ###
+.claude/
+.gemini/
+settings.json
+settings.local.json
+*.settings.json
+
+### Workflow & Documentation ###
+*WORKFLOW.md
+*plantxt
+STAFF_RESERVATION_WORKFLOW.md

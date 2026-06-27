@@ -1,17 +1,22 @@
 package com.esprit.reservation.service;
 
-import com.esprit.reservation.entity.*;
+import com.esprit.reservation.client.EmployeeManagementClient;
+import com.esprit.reservation.client.StaffAvailabilityResponse;
 import com.esprit.reservation.domain.*;
 import com.esprit.reservation.dto.ReservationResponse;
 import com.esprit.reservation.dto.WaitlistEntryResponse;
+import com.esprit.reservation.entity.*;
 import com.esprit.reservation.mapper.ReservationMapper;
 import com.esprit.reservation.mapper.WaitlistMapper;
+import com.esprit.reservation.messaging.ReservationEventPublisher;
 import com.esprit.reservation.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +25,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class ReservationService {
 
     private final ReservationRepository reservationRepository;
@@ -28,6 +34,8 @@ public class ReservationService {
     private final AvailabilityService availabilityService;
     private final ReservationMapper reservationMapper;
     private final WaitlistMapper waitlistMapper;
+    private final EmployeeManagementClient employeeManagementClient;
+    private final ReservationEventPublisher eventPublisher;
 
     public List<Reservation> getAllReservations() {
         return reservationRepository.findAll();
@@ -60,6 +68,14 @@ public class ReservationService {
 
         if (date.isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Reservation date must be in the future.");
+        }
+
+        // --- Staff availability check (sync via FeignClient) ---
+        StaffAvailabilityResponse staffCheck = safeCheckStaffAvailability(LocalDateTime.of(date, startTime));
+        boolean staffWarning = !staffCheck.sufficient();
+        if (staffWarning) {
+            log.warn("Insufficient staff ({}) for date {} at {} — reservation confirmed but manager should review",
+                    staffCheck.availableStaff(), date, startTime);
         }
 
         // Default duration is 2 hours
@@ -105,11 +121,15 @@ public class ReservationService {
             );
 
             Reservation saved = reservationRepository.save(reservation);
+            eventPublisher.publishReservationConfirmed(saved);
 
             return BookingResult.builder()
                     .isSuccess(true)
+                    .staffWarning(staffWarning)
                     .reservation(reservationMapper.toResponse(saved))
-                    .message("Reservation confirmed successfully.")
+                    .message(staffWarning
+                            ? "Reservation confirmed. Warning: insufficient staff scheduled for this time slot."
+                            : "Reservation confirmed successfully.")
                     .build();
         } else {
             // No tables available, add to Waitlist
@@ -127,12 +147,23 @@ public class ReservationService {
                     .build();
 
             WaitlistEntry savedWaitlist = waitlistRepository.save(waitlistEntry);
+            eventPublisher.publishReservationWaitlisted(savedWaitlist);
 
             return BookingResult.builder()
                     .isSuccess(false)
+                    .staffWarning(staffWarning)
                     .message("No table available. Customer added to waiting list.")
                     .waitlistEntry(waitlistMapper.toResponse(savedWaitlist))
                     .build();
+        }
+    }
+
+    private StaffAvailabilityResponse safeCheckStaffAvailability(LocalDateTime dateTime) {
+        try {
+            return employeeManagementClient.checkStaffAvailability(dateTime);
+        } catch (Exception e) {
+            log.warn("Employee management service unavailable — assuming sufficient staff: {}", e.getMessage());
+            return new StaffAvailabilityResponse(dateTime, -1, true);
         }
     }
 
@@ -142,6 +173,7 @@ public class ReservationService {
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found with ID: " + id));
         reservation.cancel(reason, changedBy);
         Reservation saved = reservationRepository.save(reservation);
+        eventPublisher.publishReservationCancelled(saved);
 
         // Process waiting list for the released table
         processWaitingList(reservation.getReservationDate());
@@ -268,6 +300,7 @@ public class ReservationService {
     @lombok.Builder
     public static class BookingResult {
         boolean isSuccess;
+        boolean staffWarning;
         ReservationResponse reservation;
         WaitlistEntryResponse waitlistEntry;
         String message;
