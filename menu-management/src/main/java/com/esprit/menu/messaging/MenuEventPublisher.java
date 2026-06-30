@@ -31,6 +31,46 @@ public class MenuEventPublisher {
         rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE, RabbitMqConfig.ROUTING_KEY_DISH_UNAVAILABLE, event);
     }
 
+    public void publishDishCreated(Dish dish) {
+        publishDishSync(dish, RabbitMqConfig.ROUTING_KEY_DISH_CREATED);
+    }
+
+    public void publishDishUpdated(Dish dish) {
+        publishDishSync(dish, RabbitMqConfig.ROUTING_KEY_DISH_UPDATED);
+    }
+
+    public void publishDishDeleted(Dish dish) {
+        var event = new DishSyncEvent(
+                UUID.randomUUID().toString(),
+                RabbitMqConfig.ROUTING_KEY_DISH_DELETED,
+                dish.getId(),
+                dish.getName(),
+                dish.getPrice(),
+                false,
+                dish.getCategory().getId(),
+                dish.getCategory().getName(),
+                LocalDateTime.now()
+        );
+        log.info("Publishing dish.deleted for dish {}", dish.getId());
+        rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE, RabbitMqConfig.ROUTING_KEY_DISH_DELETED, event);
+    }
+
+    private void publishDishSync(Dish dish, String routingKey) {
+        var event = new DishSyncEvent(
+                UUID.randomUUID().toString(),
+                routingKey,
+                dish.getId(),
+                dish.getName(),
+                dish.getPrice(),
+                dish.isAvailable(),
+                dish.getCategory().getId(),
+                dish.getCategory().getName(),
+                LocalDateTime.now()
+        );
+        log.info("Publishing {} for dish {}", routingKey, dish.getId());
+        rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE, routingKey, event);
+    }
+
     public void publishPromotionCreated(Promotion promotion) {
         var event = new PromotionCreatedEvent(
                 UUID.randomUUID().toString(),

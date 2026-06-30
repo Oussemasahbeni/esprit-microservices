@@ -2,6 +2,7 @@ package com.esprit.reservation.config;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Declarables;
 import org.springframework.amqp.core.ExchangeBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
@@ -26,6 +27,13 @@ public class RabbitMqConfig {
     public static final String ROUTING_KEY_SCHEDULE_UPDATED = "employee.schedule.updated";
     public static final String ROUTING_KEY_MANAGER_ALERT    = "manager.staff.alert";
 
+    public static final String DISH_SYNC_QUEUE      = "dish.sync.for.reservation";
+    public static final String DISH_SYNC_QUEUE_DLQ  = "dish.sync.for.reservation.dlq";
+    // Bound explicitly (not "dish.*") because dish.unavailable carries a different,
+    // narrower payload shape than DishSyncEvent — "became unavailable" is instead
+    // detected from dish.updated's `available=false` field.
+    public static final String[] DISH_ROUTING_KEYS = {"dish.created", "dish.updated", "dish.deleted"};
+
     @Bean
     public TopicExchange espritEventsExchange() {
         return ExchangeBuilder.topicExchange(EXCHANGE).durable(true).build();
@@ -42,6 +50,27 @@ public class RabbitMqConfig {
                 .bind(scheduleUpdatesQueue)
                 .to(espritEventsExchange)
                 .with(ROUTING_KEY_SCHEDULE_UPDATED);
+    }
+
+    @Bean
+    public Queue dishSyncQueueDlq() {
+        return QueueBuilder.durable(DISH_SYNC_QUEUE_DLQ).build();
+    }
+
+    @Bean
+    public Queue dishSyncQueue() {
+        return QueueBuilder.durable(DISH_SYNC_QUEUE)
+                .deadLetterExchange("")
+                .deadLetterRoutingKey(DISH_SYNC_QUEUE_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Declarables dishSyncBindings(Queue dishSyncQueue, TopicExchange espritEventsExchange) {
+        return new Declarables(java.util.Arrays.stream(DISH_ROUTING_KEYS)
+                .map(key -> BindingBuilder.bind(dishSyncQueue).to(espritEventsExchange).with(key))
+                .map(Binding.class::cast)
+                .toList());
     }
 
     @Bean

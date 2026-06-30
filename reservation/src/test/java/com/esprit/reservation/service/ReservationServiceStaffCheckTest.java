@@ -46,6 +46,7 @@ class ReservationServiceStaffCheckTest {
     @Mock private WaitlistMapper waitlistMapper;
     @Mock private EmployeeManagementClient employeeManagementClient;
     @Mock private ReservationEventPublisher eventPublisher;
+    @Mock private com.esprit.reservation.client.MenuManagementClient menuManagementClient;
 
     @InjectMocks
     private ReservationService reservationService;
@@ -64,8 +65,8 @@ class ReservationServiceStaffCheckTest {
 
     @Test
     void createReservation_withSufficientStaff_confirmsWithNoWarning() {
-        when(employeeManagementClient.checkStaffAvailability(any(), any()))
-                .thenReturn(new StaffAvailabilityResponse(futureDate, startTime, 3, true));
+        when(employeeManagementClient.checkStaffAvailability(any()))
+                .thenReturn(new StaffAvailabilityResponse(futureDate.atTime(startTime), 3, true));
         when(availabilityService.findAvailableTables(any(), any(), any(), any()))
                 .thenReturn(List.of(table));
         when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -82,8 +83,8 @@ class ReservationServiceStaffCheckTest {
     @Test
     void createReservation_withInsufficientStaff_confirmsButRaisesWarning() {
         // 0 active staff on a fully booked Friday night → warning raised, but booking still goes through
-        when(employeeManagementClient.checkStaffAvailability(any(), any()))
-                .thenReturn(new StaffAvailabilityResponse(futureDate, startTime, 0, false));
+        when(employeeManagementClient.checkStaffAvailability(any()))
+                .thenReturn(new StaffAvailabilityResponse(futureDate.atTime(startTime), 0, false));
         when(availabilityService.findAvailableTables(any(), any(), any(), any()))
                 .thenReturn(List.of(table));
         when(reservationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -100,7 +101,7 @@ class ReservationServiceStaffCheckTest {
     @Test
     void createReservation_whenEmployeeServiceDown_fallbackAllowsBookingWithoutWarning() {
         // Feign call throws → safeCheckStaffAvailability returns sufficient=true
-        when(employeeManagementClient.checkStaffAvailability(any(), any()))
+        when(employeeManagementClient.checkStaffAvailability(any()))
                 .thenThrow(new RuntimeException("employee-management service unavailable"));
         when(availabilityService.findAvailableTables(any(), any(), any(), any()))
                 .thenReturn(List.of(table));
@@ -149,6 +150,7 @@ class ReservationServiceStaffCheckTest {
                 futureDate,
                 startTime,
                 GuestsCount.of(2),
+                null,
                 null
         );
     }

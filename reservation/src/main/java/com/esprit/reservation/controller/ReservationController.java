@@ -1,5 +1,6 @@
 package com.esprit.reservation.controller;
 
+import com.esprit.reservation.dto.MenuSnapshotResponse;
 import com.esprit.reservation.dto.ReservationResponse;
 import com.esprit.reservation.dto.TableResponse;
 import com.esprit.reservation.domain.EmailAddress;
@@ -9,6 +10,7 @@ import com.esprit.reservation.dto.CreateReservationRequest;
 import com.esprit.reservation.mapper.ReservationMapper;
 import com.esprit.reservation.mapper.TableMapper;
 import com.esprit.reservation.service.AvailabilityService;
+import com.esprit.reservation.service.MenuSnapshotService;
 import com.esprit.reservation.service.ReservationService;
 import com.esprit.reservation.service.ReservationService.BookingResult;
 import com.esprit.reservation.entity.Reservation;
@@ -30,6 +32,7 @@ public class ReservationController {
 
     private final ReservationService reservationService;
     private final AvailabilityService availabilityService;
+    private final MenuSnapshotService menuSnapshotService;
     private final ReservationMapper reservationMapper;
     private final TableMapper tableMapper;
 
@@ -46,7 +49,8 @@ public class ReservationController {
                 request.getReservationDate(),
                 request.getStartTime(),
                 request.getGuestsCount(),
-                request.getSpecialRequests()
+                request.getSpecialRequests(),
+                request.getPreOrderItems()
         );
         if (result.isSuccess()) {
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
@@ -97,6 +101,11 @@ public class ReservationController {
         return ResponseEntity.ok(reservationMapper.toResponse(
                 reservationService.cancelReservation(id, reason, cancelledBy)
         ));
+    }
+
+    @GetMapping("/menu")
+    public ResponseEntity<MenuSnapshotResponse> getMenuSnapshot() {
+        return ResponseEntity.ok(menuSnapshotService.getSnapshot());
     }
 
     @GetMapping("/availability")

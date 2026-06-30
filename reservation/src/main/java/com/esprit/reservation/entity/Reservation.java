@@ -74,6 +74,10 @@ public class Reservation {
     @Builder.Default
     private java.util.List<ReservationStatusHistory> statusHistory = new java.util.ArrayList<>();
 
+    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private java.util.List<ReservationPreOrderItem> preOrderItems = new java.util.ArrayList<>();
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 

@@ -42,6 +42,8 @@ public class ReservationServiceTest {
     private EmployeeManagementClient employeeManagementClient;
     @Mock
     private ReservationEventPublisher eventPublisher;
+    @Mock
+    private com.esprit.reservation.client.MenuManagementClient menuManagementClient;
 
     @InjectMocks
     private ReservationService reservationService;
@@ -62,9 +64,10 @@ public class ReservationServiceTest {
         futureDate = LocalDate.now().plusDays(2);
         startTime = LocalTime.of(19, 0);
 
-        // Default: employee service reports sufficient staff so existing tests are unaffected
-        when(employeeManagementClient.checkStaffAvailability(any(), any()))
-                .thenReturn(new StaffAvailabilityResponse(futureDate, startTime, 3, true));
+        // Default: employee service reports sufficient staff so existing tests are unaffected.
+        // lenient() because testCancelReservation doesn't exercise this path at all.
+        lenient().when(employeeManagementClient.checkStaffAvailability(any()))
+                .thenReturn(new StaffAvailabilityResponse(futureDate.atTime(startTime), 3, true));
     }
 
     @Test
@@ -87,6 +90,7 @@ public class ReservationServiceTest {
                 "Window seat",
                 null,
                 List.of(),
+                List.of(),
                 null,
                 null
         );
@@ -100,7 +104,8 @@ public class ReservationServiceTest {
                 futureDate,
                 startTime,
                 GuestsCount.of(2),
-                "Window seat"
+                "Window seat",
+                null
         );
 
         assertTrue(result.isSuccess());
@@ -148,7 +153,8 @@ public class ReservationServiceTest {
                 futureDate,
                 startTime,
                 GuestsCount.of(2),
-                "Window seat"
+                "Window seat",
+                null
         );
 
         assertFalse(result.isSuccess());

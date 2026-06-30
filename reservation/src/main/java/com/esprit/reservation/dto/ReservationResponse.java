@@ -22,6 +22,7 @@ public record ReservationResponse(
     String specialRequests,
     String cancellationReason,
     List<ReservationStatusHistoryResponse> statusHistory,
+    List<PreOrderItemResponse> preOrderItems,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {}

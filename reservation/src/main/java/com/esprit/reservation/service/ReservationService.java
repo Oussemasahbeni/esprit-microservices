@@ -1,8 +1,11 @@
 package com.esprit.reservation.service;
 
 import com.esprit.reservation.client.EmployeeManagementClient;
+import com.esprit.reservation.client.MenuManagementClient;
+import com.esprit.reservation.client.MenuSnapshot;
 import com.esprit.reservation.client.StaffAvailabilityResponse;
 import com.esprit.reservation.domain.*;
+import com.esprit.reservation.dto.PreOrderItemRequest;
 import com.esprit.reservation.dto.ReservationResponse;
 import com.esprit.reservation.dto.WaitlistEntryResponse;
 import com.esprit.reservation.entity.*;
@@ -18,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +39,7 @@ public class ReservationService {
     private final ReservationMapper reservationMapper;
     private final WaitlistMapper waitlistMapper;
     private final EmployeeManagementClient employeeManagementClient;
+    private final MenuManagementClient menuManagementClient;
     private final ReservationEventPublisher eventPublisher;
 
     public List<Reservation> getAllReservations() {
@@ -64,11 +69,14 @@ public class ReservationService {
     @Transactional
     public BookingResult createReservation(
             String fullName, EmailAddress email, PhoneNumber phone, String keycloakUserId,
-            LocalDate date, LocalTime startTime, GuestsCount guestsCount, String specialRequests) {
+            LocalDate date, LocalTime startTime, GuestsCount guestsCount, String specialRequests,
+            List<PreOrderItemRequest> preOrderItemRequests) {
 
         if (date.isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Reservation date must be in the future.");
         }
+
+        List<ReservationPreOrderItem> preOrderItems = resolvePreOrderItems(preOrderItemRequests);
 
         // --- Staff availability check (sync via FeignClient) ---
         StaffAvailabilityResponse staffCheck = safeCheckStaffAvailability(LocalDateTime.of(date, startTime));
@@ -120,6 +128,9 @@ public class ReservationService {
                     .build()
             );
 
+            preOrderItems.forEach(item -> item.setReservation(reservation));
+            reservation.getPreOrderItems().addAll(preOrderItems);
+
             Reservation saved = reservationRepository.save(reservation);
             eventPublisher.publishReservationConfirmed(saved);
 
@@ -156,6 +167,40 @@ public class ReservationService {
                     .waitlistEntry(waitlistMapper.toResponse(savedWaitlist))
                     .build();
         }
+    }
+
+    private List<ReservationPreOrderItem> resolvePreOrderItems(List<PreOrderItemRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        MenuSnapshot menu;
+        try {
+            menu = menuManagementClient.getMenu();
+        } catch (Exception e) {
+            throw new IllegalStateException("Menu service is unavailable, cannot validate pre-order items.", e);
+        }
+
+        List<ReservationPreOrderItem> items = new ArrayList<>();
+        for (PreOrderItemRequest request : requests) {
+            MenuSnapshot.Dish dish = menu.dishes().stream()
+                    .filter(d -> d.id().equals(request.dishId()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Dish " + request.dishId() + " is not on the current menu."));
+            if (!dish.available()) {
+                throw new IllegalArgumentException(
+                        "Dish '" + dish.name() + "' is currently unavailable and cannot be pre-ordered.");
+            }
+            items.add(ReservationPreOrderItem.builder()
+                    .menuDishId(dish.id())
+                    .dishName(dish.name())
+                    .unitPrice(dish.price())
+                    .quantity(request.quantity())
+                    .stillAvailable(true)
+                    .build());
+        }
+        return items;
     }
 
     private StaffAvailabilityResponse safeCheckStaffAvailability(LocalDateTime dateTime) {
