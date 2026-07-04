@@ -46,6 +46,7 @@ services:
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: keycloak
       POSTGRES_DB: keycloak
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - keycloak_postgres_data:/var/lib/postgresql/data
     ports:
@@ -82,7 +83,7 @@ services:
       - start-dev
       - --import-realm
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/ready" ]
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\r\nhost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep 'HTTP/1.1 200' <&3" ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -95,56 +96,21 @@ services:
       - "1080:1080"
       - "1025:1025"
 
-  reservation-postgres:
+  app-postgres:
     image: postgres:18-alpine
-    container_name: reservation-postgres
+    container_name: app-postgres
     environment:
-      POSTGRES_USER: reservation_user
-      POSTGRES_PASSWORD: reservation_pass
-      POSTGRES_DB: reservation_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - reservation_postgres_data:/var/lib/postgresql/data
+      - app_postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
     ports:
       - "5433:5432"
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "reservation_user", "-d", "reservation_db" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  employee-postgres:
-    image: postgres:18-alpine
-    container_name: employee-postgres
-    environment:
-      POSTGRES_USER: employee_user
-      POSTGRES_PASSWORD: employee_pass
-      POSTGRES_DB: employee_management_db
-    volumes:
-      - employee_postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5434:5432"
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "employee_user", "-d", "employee_management_db" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  delivery-postgres:
-    image: postgres:18-alpine
-    container_name: delivery-postgres
-    environment:
-      POSTGRES_USER: delivery_user
-      POSTGRES_PASSWORD: delivery_pass
-      POSTGRES_DB: delivery_management_db
-    volumes:
-      - delivery_postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5435:5432"
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "delivery_user", "-d", "delivery_management_db" ]
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -166,123 +132,31 @@ services:
       timeout: 5s
       retries: 10
 
-  gateway:
-    build:
-      context: .
-      dockerfile: gateway/Dockerfile
-    container_name: gateway-service
-    ports:
-      - "8080:8080"
+  # One-shot: seeds Consul KV from consul-kv.json on every `docker compose up`,
+  # so a fresh checkout/git pull never needs a manual `consul kv import`.
+  consul-kv-init:
+    image: node:22-alpine
+    container_name: consul-kv-init
+    working_dir: /app
+    volumes:
+      - ./scripts/import-consul-kv.js:/app/import-consul-kv.js
+      - ./consul-kv.json:/app/consul-kv.json
     environment:
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/esprit
+      CONSUL_KV_FILE: /app/consul-kv.json
+    command: [ "node", "/app/import-consul-kv.js" ]
     depends_on:
       consul:
         condition: service_healthy
-      keycloak:
-        condition: service_healthy
+    restart: "no"
 
-  reservation:
-    build:
-      context: .
-      dockerfile: reservation/Dockerfile
-    container_name: reservation-service
-    ports:
-      - "8083:8083"
-    environment:
-      CONSUL_HOST: consul
-      CONSUL_PORT: 8500
-      DB_HOST: reservation-postgres
-      DB_PORT: 5432
-      DB_USERNAME: reservation_user
-      DB_PASSWORD: reservation_pass
-      RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_URL: http://keycloak:8080
-    depends_on:
-      reservation-postgres:
-        condition: service_healthy
-      consul:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-
-  employee-management:
-    build:
-      context: .
-      dockerfile: employee-management/Dockerfile
-    container_name: employee-management-service
-    ports:
-      - "8084:8084"
-    environment:
-      CONSUL_HOST: consul
-      CONSUL_PORT: 8500
-      DB_HOST: employee-postgres
-      DB_PORT: 5432
-      DB_USERNAME: employee_user
-      DB_PASSWORD: employee_pass
-      RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/esprit
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
-    depends_on:
-      employee-postgres:
-        condition: service_healthy
-      consul:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-
-  menu-management:
-    build:
-      context: .
-      dockerfile: menu-management/Dockerfile
-    container_name: menu-management-service
-    ports:
-      - "8085:8085"
-    environment:
-      CONSUL_HOST: consul
-      CONSUL_PORT: 8500
-      DB_HOST: menu-mysql
-      DB_PORT: 3306
-      DB_USERNAME: root
-      DB_PASSWORD: password
-      RABBITMQ_HOST: rabbitmq
-    depends_on:
-      menu-mysql:
-        condition: service_healthy
-      consul:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-  delivery-management:
-    build:
-      context: .
-      dockerfile: delivery-management/Dockerfile
-    container_name: delivery-management-service
-    ports:
-      - "8086:8086"
-    environment:
-      CONSUL_HOST: consul
-      CONSUL_PORT: 8500
-      DB_HOST: delivery-postgres
-      DB_PORT: 5432
-      DB_USERNAME: delivery_user
-      DB_PASSWORD: delivery_pass
-    depends_on:
-      delivery-postgres:
-        condition: service_healthy
-      consul:
-        condition: service_healthy
+  # ── App services (gateway, reservation, employee-management, menu-management,
+  #    delivery-management) are run locally from the IDE/CLI, NOT in Docker.
+  #    Only shared infrastructure lives in this compose file.
 
 volumes:
   consul_data:
   keycloak_postgres_data:
-  reservation_postgres_data:
-  employee_postgres_data:
-  delivery_postgres_data:
+  app_postgres_data:
   menu_mysql_data:

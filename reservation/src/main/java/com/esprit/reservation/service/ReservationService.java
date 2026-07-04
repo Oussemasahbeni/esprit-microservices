@@ -50,6 +50,10 @@ public class ReservationService {
         return reservationRepository.findByReservationDate(date);
     }
 
+    public List<Reservation> getReservationsByDateRange(LocalDate startDate, LocalDate endDate) {
+        return reservationRepository.findByReservationDateBetween(startDate, endDate);
+    }
+
     public Optional<Reservation> getReservationById(Long id) {
         return reservationRepository.findById(id);
     }

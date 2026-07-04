@@ -25,7 +25,7 @@ public class AvailabilityService {
     public List<RestaurantTable> findAvailableTables(LocalDate date, LocalTime startTime, LocalTime endTime, GuestsCount guestsCount) {
         // Find tables that have enough capacity and are active
         List<RestaurantTable> candidateTables = tableRepository
-                .findByCapacityGreaterThanEqualAndActiveTrueOrderByCapacityAsc(guestsCount);
+                .findByCapacityGreaterThanEqualAndActiveTrueOrderByCapacityAsc(guestsCount.value());
 
         // Find active reservations overlapping with the requested interval
         List<Reservation> overlappingReservations = reservationRepository

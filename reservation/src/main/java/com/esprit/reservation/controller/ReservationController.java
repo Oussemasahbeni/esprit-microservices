@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -60,6 +61,7 @@ public class ReservationController {
     }
 
     @GetMapping("/{id}")
+    @Transactional(readOnly = true)
     public ResponseEntity<ReservationResponse> getReservation(@PathVariable Long id) {
         return reservationService.getReservationById(id)
                 .map(reservationMapper::toResponse)
@@ -68,6 +70,7 @@ public class ReservationController {
     }
 
     @GetMapping("/code/{code}")
+    @Transactional(readOnly = true)
     public ResponseEntity<ReservationResponse> getReservationByCode(@PathVariable ReservationCode code) {
         return reservationService.getReservationByCode(code)
                 .map(reservationMapper::toResponse)
@@ -76,6 +79,7 @@ public class ReservationController {
     }
 
     @DeleteMapping("/{id}/cancel")
+    @Transactional
     public ResponseEntity<ReservationResponse> cancelReservation(
             @PathVariable Long id,
             @RequestParam(required = false, defaultValue = "Client Cancelled") String reason,
@@ -120,6 +124,7 @@ public class ReservationController {
     }
 
     @GetMapping("/my")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<ReservationResponse>> getMyReservations(
             @RequestAttribute(value = "userId", required = false) String keycloakId) {
         if (keycloakId == null) {
