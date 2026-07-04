@@ -26,7 +26,6 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -82,7 +81,7 @@ class MenuServiceTest {
         assertThat(response.category().name()).isEqualTo("Mains");
         assertThat(response.ingredients()).contains("Pasta", "Mushroom");
         assertThat(response.variants()).hasSize(1);
-        verifyNoInteractions(eventPublisher);
+        verify(eventPublisher).publishDishCreated(any(Dish.class));
     }
 
     @Test

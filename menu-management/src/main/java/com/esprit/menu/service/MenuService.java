@@ -102,7 +102,9 @@ public class MenuService {
                 .allergens(cleanSet(request.allergens()))
                 .build();
         dish.replaceVariants(toVariants(request));
-        return mapper.toDishResponse(dishRepository.save(dish));
+        Dish saved = dishRepository.save(dish);
+        eventPublisher.publishDishCreated(saved);
+        return mapper.toDishResponse(saved);
     }
 
     public DishResponse updateDish(Long id, DishRequest request) {
@@ -121,6 +123,7 @@ public class MenuService {
         if (wasAvailable && !saved.isAvailable()) {
             eventPublisher.publishDishUnavailable(saved);
         }
+        eventPublisher.publishDishUpdated(saved);
         return mapper.toDishResponse(saved);
     }
 
@@ -132,12 +135,14 @@ public class MenuService {
         if (wasAvailable && !saved.isAvailable()) {
             eventPublisher.publishDishUnavailable(saved);
         }
+        eventPublisher.publishDishUpdated(saved);
         return mapper.toDishResponse(saved);
     }
 
     public void deleteDish(Long id) {
         Dish dish = getDishEntity(id);
         dishRepository.delete(dish);
+        eventPublisher.publishDishDeleted(dish);
     }
 
     @Transactional(readOnly = true)

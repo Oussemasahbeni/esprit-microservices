@@ -1,9 +1,11 @@
 package com.esprit.reservation.mapper;
 
+import com.esprit.reservation.dto.PreOrderItemResponse;
 import com.esprit.reservation.dto.ReservationResponse;
 import com.esprit.reservation.dto.ReservationStatusHistoryResponse;
 import com.esprit.reservation.dto.CustomerResponse;
 import com.esprit.reservation.entity.Reservation;
+import com.esprit.reservation.entity.ReservationPreOrderItem;
 import com.esprit.reservation.entity.ReservationStatusHistory;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -30,4 +32,6 @@ public interface ReservationMapper {
     }
     
     ReservationStatusHistoryResponse toHistoryResponse(ReservationStatusHistory history);
+
+    PreOrderItemResponse toPreOrderItemResponse(ReservationPreOrderItem item);
 }

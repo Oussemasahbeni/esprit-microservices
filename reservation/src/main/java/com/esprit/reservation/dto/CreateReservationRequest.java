@@ -1,9 +1,11 @@
 package com.esprit.reservation.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import com.esprit.reservation.domain.EmailAddress;
 import com.esprit.reservation.domain.PhoneNumber;
 import com.esprit.reservation.domain.GuestsCount;
@@ -34,4 +36,7 @@ public class CreateReservationRequest {
     private GuestsCount guestsCount;
 
     private String specialRequests;
+
+    @Valid
+    private List<PreOrderItemRequest> preOrderItems;
 }

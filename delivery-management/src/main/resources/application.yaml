@@ -12,8 +12,8 @@ spring:
         default-context: application
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:delivery_management_db}
-    username: ${DB_USERNAME:username}
-    password: ${DB_PASSWORD:password}
+    username: ${DB_USERNAME:delivery_user}
+    password: ${DB_PASSWORD:delivery_pass}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

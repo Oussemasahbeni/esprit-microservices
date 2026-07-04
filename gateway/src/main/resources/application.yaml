@@ -11,7 +11,6 @@ spring:
         prefixes: config
         default-context: application
 
-
 resilience4j:
   circuitbreaker:
     configs:
