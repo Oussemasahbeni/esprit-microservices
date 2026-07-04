@@ -12,7 +12,8 @@ import java.util.stream.Stream;
 public enum RoleType {
     MANAGER("manager"),
     ADMIN("admin"),
-    DELIVERY_MANAGER("delivery-manager");
+    DELIVERY_MANAGER("delivery-manager"),
+    DELIVERY_MAN("delivery-man");
 
 
     private final String value;

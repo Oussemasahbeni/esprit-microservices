@@ -36,7 +36,7 @@ spring:
 keycloak:
   realm: esprit
   client-id: esprit-backend
-  client-secret: ${KEYCLOAK_CLIENT_SECRET:lkoPxx5fDQ6DwyFxb2ruHFmcMziZxtTO}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:AiNueJFw2my49qMg16Cp3RMD2cNyoYHx}
   server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9000}
   frontend-client-id: esprit-frontend
 
