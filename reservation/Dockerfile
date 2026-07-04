@@ -8,7 +8,7 @@
 # (docker-compose.yml is already wired with the matching `context: .` / `dockerfile:`.)
 
 # ---- Build stage -----------------------------------------------------------
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /workspace
 
 # Copy just the POMs first so Maven can resolve/cache dependencies in their own
@@ -27,7 +27,7 @@ RUN mvn -q -pl reservation -am package -DskipTests \
     && cp reservation/target/reservation-*.jar /workspace/app.jar
 
 # ---- Runtime stage ----------------------------------------------------------
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 WORKDIR /app
 
 RUN addgroup -S spring && adduser -S spring -G spring

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DiffGenerationConfig">
+    <option name="snapshotDb" value="false" />
+    <option name="snapshotModelValue" value="delivery-management:delivery-management" />
     <option name="sourceModelValue" value="employee-management:employee-management" />
     <option name="targetDbValue" value="7ff6a7e1-9a7e-4833-a845-6299e7c7860f__employee_management_db_public" />
   </component>

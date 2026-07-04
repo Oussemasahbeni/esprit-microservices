@@ -1,7 +1,7 @@
 # Build context MUST be the repository root — see reservation/Dockerfile for why.
 #   docker build -f menu-management/Dockerfile -t menu-management-service .
 
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /workspace
 
 COPY pom.xml ./pom.xml
@@ -17,7 +17,7 @@ COPY menu-management/src menu-management/src
 RUN mvn -q -pl menu-management -am package -DskipTests \
     && cp menu-management/target/menu-management-*.jar /workspace/app.jar
 
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 WORKDIR /app
 
 RUN addgroup -S spring && adduser -S spring -G spring

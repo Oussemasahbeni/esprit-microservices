@@ -1,7 +1,7 @@
 # Build context MUST be the repository root — see reservation/Dockerfile for why.
 #   docker build -f gateway/Dockerfile -t gateway-service .
 
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /workspace
 
 COPY pom.xml ./pom.xml
@@ -17,7 +17,7 @@ COPY gateway/src gateway/src
 RUN mvn -q -pl gateway -am package -DskipTests \
     && cp gateway/target/gateway-service-*.jar /workspace/app.jar
 
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 WORKDIR /app
 
 RUN addgroup -S spring && adduser -S spring -G spring
