@@ -101,19 +101,22 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Order getOrderById(Long orderId) {
-        return orderRepository.findById(orderId)
+        return orderRepository.findByIdWithItems(orderId)
                 .orElseThrow(() -> new ApplicationException(ORDER_NOT_FOUND, "Order not found with id: " + orderId));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Order> getOrdersByCustomer(Long customerId) {
-        return orderRepository.findByCustomerId(customerId);
+        return orderRepository.findByCustomerIdWithItems(customerId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Order> getOrdersByStatus(OrderStatus status) {
-        return orderRepository.findByStatus(status);
+        return orderRepository.findByStatusWithItems(status);
     }
 
     @Override

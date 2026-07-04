@@ -73,6 +73,12 @@ services:
       KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: keycloak
+      # Pins the issuer/token URLs to http://localhost:9000 regardless of the
+      # internal Host header a backend container used to reach this server —
+      # so browser-issued tokens and backend token validation agree on the
+      # same issuer even though backends reach Keycloak via the "keycloak"
+      # service name on port 8080 internally. No client secret changes needed.
+      KC_HOSTNAME: http://localhost:9000
     volumes:
       - ./keycloak/kc-providers/jars:/opt/keycloak/providers/
       - ./keycloak/kc-realm:/opt/keycloak/data/import/
@@ -151,9 +157,155 @@ services:
         condition: service_healthy
     restart: "no"
 
-  # ── App services (gateway, reservation, employee-management, menu-management,
-  #    delivery-management) are run locally from the IDE/CLI, NOT in Docker.
-  #    Only shared infrastructure lives in this compose file.
+  # ── App services ─────────────────────────────────────────────────────────
+  # Regular bridge networking — every service talks to infra by Docker
+  # service name (consul, app-postgres, menu-mysql, rabbitmq, keycloak), not
+  # "localhost". Only the browser-facing pieces (gateway, frontend, keycloak,
+  # consul UI) are published to the host on their usual ports.
+  #
+  # Keycloak issuer: KC_HOSTNAME above pins every issued token's `iss` claim
+  # to http://localhost:9000/realms/esprit, so KEYCLOAK_ISSUER_URI below stays
+  # unchanged from the local-IDE value — no client secret/redirect URI
+  # changes. Signature verification (an actual network call for the JWKS)
+  # is pointed at the internal address via KEYCLOAK_JWK_SET_URI, decoupled
+  # from issuer validation via Spring Boot's standard
+  # jwk-set-uri + issuer-uri combination (see gateway/employee-management/
+  # delivery-management config in consul-kv.json).
+  #
+  # Images are pre-built, NOT built by compose (`image:` only, no `build:`).
+  # After `git pull`, build/refresh an image locally with the matching
+  # Dockerfile, e.g.:
+  #   docker build -f gateway/Dockerfile -t esprit-microservices-gateway .
+  # Same image name here = compose picks it up on the next `up`.
+
+  gateway:
+    image: esprit-microservices-gateway:latest
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      KEYCLOAK_ISSUER_URI: http://localhost:9000/realms/esprit
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/esprit/protocol/openid-connect/certs
+    depends_on:
+      consul:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      consul-kv-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  reservation:
+    image: esprit-microservices-reservation:latest
+    container_name: reservation-service
+    environment:
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      DB_HOST: app-postgres
+      DB_PORT: "5432"
+      RABBITMQ_HOST: rabbitmq
+      KEYCLOAK_URL: http://keycloak:8080
+    depends_on:
+      consul:
+        condition: service_healthy
+      app-postgres:
+        condition: service_healthy
+      consul-kv-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  employee-management:
+    image: esprit-microservices-employee-management:latest
+    container_name: employee-management-service
+    environment:
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      DB_HOST: app-postgres
+      DB_PORT: "5432"
+      RABBITMQ_HOST: rabbitmq
+      KEYCLOAK_ISSUER_URI: http://localhost:9000/realms/esprit
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/esprit/protocol/openid-connect/certs
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+    depends_on:
+      consul:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      app-postgres:
+        condition: service_healthy
+      consul-kv-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  menu-management:
+    image: esprit-microservices-menu-management:latest
+    container_name: menu-management-service
+    environment:
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      DB_HOST: menu-mysql
+      DB_PORT: "3306"
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      consul:
+        condition: service_healthy
+      menu-mysql:
+        condition: service_healthy
+      consul-kv-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  delivery-management:
+    image: esprit-microservices-delivery-management:latest
+    container_name: delivery-management-service
+    environment:
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      DB_HOST: app-postgres
+      DB_PORT: "5432"
+      RABBITMQ_HOST: rabbitmq
+      KEYCLOAK_ISSUER_URI: http://localhost:9000/realms/esprit
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/esprit/protocol/openid-connect/certs
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+    depends_on:
+      consul:
+        condition: service_healthy
+      app-postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      consul-kv-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  ai-service:
+    image: esprit-ai-service:latest
+    container_name: ai-service
+    environment:
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      SERVICE_HOST: ai-service
+      KEYCLOAK_ISSUER_URI: http://localhost:9000/realms/esprit
+      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/esprit/protocol/openid-connect/certs
+    depends_on:
+      consul:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      consul-kv-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    image: esprit-microservices-frontend:latest
+    container_name: esprit-frontend
+    ports:
+      - "4200:4200"
+    depends_on:
+      - gateway
+    restart: unless-stopped
 
 volumes:
   consul_data:

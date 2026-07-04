@@ -20,7 +20,7 @@ public class GatewayRoutesConfig {
     @Bean
     public RouterFunction<ServerResponse> gatewayRoutes() {
         return route("employee-management")
-                .route(path("/api/employees/**", "/employee-management/v3/api-docs"), http())
+                .route(path("/api/employees/**", "/api/staff/**", "/employee-management/v3/api-docs"), http())
                 .before(rewritePath("/employee-management/v3/api-docs", "/v3/api-docs"))
                 .filter(lb("employee-management"))
                 .filter(circuitBreaker("employee-management", URI.create("forward:/fallback/employee-management")))
@@ -34,7 +34,7 @@ public class GatewayRoutesConfig {
                         .build())
 
                 .and(route("delivery-management")
-                        .route(path("/api/deliveries/**", "/delivery-management/v3/api-docs"), http())
+                        .route(path("/api/deliveries/**", "/api/orders/**", "/delivery-management/v3/api-docs"), http())
                         .before(rewritePath("/delivery-management/v3/api-docs", "/v3/api-docs"))
                         .filter(lb("delivery-management"))
                         .filter(circuitBreaker("delivery-management", URI.create("forward:/fallback/delivery-management")))
