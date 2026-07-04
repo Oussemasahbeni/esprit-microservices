@@ -5,7 +5,7 @@
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
   "refreshTokenMaxReuse": 0,
-  "accessTokenLifespan": 300,
+  "accessTokenLifespan": 1800,
   "accessTokenLifespanForImplicitFlow": 900,
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 36000,
@@ -112,6 +112,13 @@
         },
         "clientRole": false,
         "containerId": "7d1b2e4d-74c1-4779-a8b6-dc8edcde1221",
+        "attributes": {}
+      },
+      {
+        "name": "delivery-man",
+        "description": "Delivery driver",
+        "composite": false,
+        "clientRole": false,
         "attributes": {}
       }
     ],

@@ -29,8 +29,11 @@ public class WaitlistService {
             throw new IllegalArgumentException("Waitlist entry is not in WAITING status.");
         }
 
-        // Run waiting list processing for the specific date
-        reservationService.processWaitingList(entry.getRequestedDate());
+        boolean promoted = reservationService.promoteWaitlistEntryNow(entry);
+        if (!promoted) {
+            throw new IllegalStateException(
+                    "No table is available for this party size and time yet — still waiting.");
+        }
     }
 
     @Transactional
