@@ -34,4 +34,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id")
     Optional<Order> findByIdFetchItems(@Param("id") Long id);
+
+    /**
+     * Orders currently assigned (active assignment) to the given driver,
+     * used to build the "assignedOrders" part of the driver dashboard.
+     */
+    @Query("select o from Order o join o.assignment a where a.driver.id = :driverId and a.active = true")
+    List<Order> findActiveOrdersByDriverId(@Param("driverId") Long driverId);
+
+    /**
+     * All orders ever assigned to the given driver (active or closed assignments),
+     * most recent first, used for the driver's delivery history.
+     */
+    @Query("select o from Order o join o.assignment a where a.driver.id = :driverId order by a.assignedAt desc")
+    List<Order> findAllByDriverId(@Param("driverId") Long driverId);
 }

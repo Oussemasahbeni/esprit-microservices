@@ -1,6 +1,7 @@
 package com.esprit.delivery.client.feign;
 
 import com.esprit.delivery.client.feign.dto.EmployeeResponse;
+import com.esprit.delivery.config.FeignClientAuthConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,7 +15,7 @@ import java.util.List;
  * given employeeId exists and is active before it can operate as a
  * delivery driver in this service.
  */
-@FeignClient(name = "employee-management", path = "/api/employees")
+@FeignClient(name = "employee-management", path = "/api/employees", configuration = FeignClientAuthConfig.class)
 public interface EmployeeServiceClient {
 
     @GetMapping("/{id}")
