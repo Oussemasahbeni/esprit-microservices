@@ -8,6 +8,11 @@ import com.esprit.delivery.entity.Order;
 import com.esprit.delivery.entity.OrderItem;
 import com.esprit.delivery.enums.OrderStatus;
 import com.esprit.delivery.exception.ApplicationException;
+import com.esprit.delivery.messaging.DeliveryEventPublisher;
+import com.esprit.delivery.messaging.events.OrderDeliveredEvent;
+import com.esprit.delivery.messaging.events.OrderFlaggedForReviewEvent;
+import com.esprit.delivery.messaging.events.OrderPlacedEvent;
+import com.esprit.delivery.messaging.events.OrderStatusChangedEvent;
 import com.esprit.delivery.repository.OrderRepository;
 import com.esprit.delivery.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +55,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final MenuServiceClient menuServiceClient;
-//    private final DeliveryEventPublisher eventPublisher;
+    private final DeliveryEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -94,26 +99,29 @@ public class OrderServiceImpl implements OrderService {
 
         Order saved = orderRepository.save(order);
 
-//        eventPublisher.publishOrderPlaced(toOrderPlacedEvent(saved));
+        eventPublisher.publishOrderPlaced(toOrderPlacedEvent(saved));
         log.info("Order {} placed for customer {} (total={})", saved.getId(), saved.getCustomerId(), saved.getTotalAmount());
 
         return saved;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Order getOrderById(Long orderId) {
-        return orderRepository.findById(orderId)
+        return orderRepository.findByIdFetchItems(orderId)
                 .orElseThrow(() -> new ApplicationException(ORDER_NOT_FOUND, "Order not found with id: " + orderId));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Order> getOrdersByCustomer(Long customerId) {
-        return orderRepository.findByCustomerId(customerId);
+        return orderRepository.findByCustomerIdFetchItems(customerId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Order> getOrdersByStatus(OrderStatus status) {
-        return orderRepository.findByStatus(status);
+        return orderRepository.findByStatusFetchItems(status);
     }
 
     @Override
@@ -159,20 +167,20 @@ public class OrderServiceImpl implements OrderService {
 
         Order saved = orderRepository.save(order);
 
-//        eventPublisher.publishOrderStatusChanged(OrderStatusChangedEvent.builder()
-//                .orderId(saved.getId())
-//                .customerId(saved.getCustomerId())
-//                .previousStatus(previousStatus)
-//                .newStatus(newStatus)
-//                .build());
+        eventPublisher.publishOrderStatusChanged(OrderStatusChangedEvent.builder()
+                .orderId(saved.getId())
+                .customerId(saved.getCustomerId())
+                .previousStatus(previousStatus)
+                .newStatus(newStatus)
+                .build());
 
-//        if (newStatus == OrderStatus.DELIVERED) {
-//            eventPublisher.publishOrderDelivered(OrderDeliveredEvent.builder()
-//                    .orderId(saved.getId())
-//                    .customerId(saved.getCustomerId())
-//                    .deliveredAt(saved.getDeliveredAt())
-//                    .build());
-//        }
+        if (newStatus == OrderStatus.DELIVERED) {
+            eventPublisher.publishOrderDelivered(OrderDeliveredEvent.builder()
+                    .orderId(saved.getId())
+                    .customerId(saved.getCustomerId())
+                    .deliveredAt(saved.getDeliveredAt())
+                    .build());
+        }
 
         log.info("Order {} transitioned {} -> {}", orderId, previousStatus, newStatus);
 
@@ -192,12 +200,12 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.CANCELLED);
         Order saved = orderRepository.save(order);
 
-//        eventPublisher.publishOrderStatusChanged(OrderStatusChangedEvent.builder()
-//                .orderId(saved.getId())
-//                .customerId(saved.getCustomerId())
-//                .previousStatus(previousStatus)
-//                .newStatus(OrderStatus.CANCELLED)
-//                .build());
+        eventPublisher.publishOrderStatusChanged(OrderStatusChangedEvent.builder()
+                .orderId(saved.getId())
+                .customerId(saved.getCustomerId())
+                .previousStatus(previousStatus)
+                .newStatus(OrderStatus.CANCELLED)
+                .build());
 
         log.info("Order {} cancelled from status {} (reason: {})", orderId, previousStatus, reason);
 
@@ -216,28 +224,28 @@ public class OrderServiceImpl implements OrderService {
         log.warn("Dish {} became unavailable; flagging {} affected order(s) for review",
                 dishId, affectedOrders.size());
 
-//        for (Order order : affectedOrders) {
-//            eventPublisher.publishOrderFlaggedForReview(OrderFlaggedForReviewEvent.builder()
-//                    .orderId(order.getId())
-//                    .customerId(order.getCustomerId())
-//                    .dishId(dishId)
-//                    .reason("Dish " + dishId + " is no longer available")
-//                    .build());
-//        }
+        for (Order order : affectedOrders) {
+            eventPublisher.publishOrderFlaggedForReview(OrderFlaggedForReviewEvent.builder()
+                    .orderId(order.getId())
+                    .customerId(order.getCustomerId())
+                    .dishId(dishId)
+                    .reason("Dish " + dishId + " is no longer available")
+                    .build());
+        }
     }
 
-//    private OrderPlacedEvent toOrderPlacedEvent(Order order) {
-//        return OrderPlacedEvent.builder()
-//                .orderId(order.getId())
-//                .customerId(order.getCustomerId())
-//                .totalAmount(order.getTotalAmount())
-//                .items(order.getItems().stream()
-//                        .map(item -> OrderPlacedEvent.Item.builder()
-//                                .dishId(item.getDishId())
-//                                .dishName(item.getDishName())
-//                                .quantity(item.getQuantity())
-//                                .build())
-//                        .collect(Collectors.toList()))
-//                .build();
-//    }
+    private OrderPlacedEvent toOrderPlacedEvent(Order order) {
+        return OrderPlacedEvent.builder()
+                .orderId(order.getId())
+                .customerId(order.getCustomerId())
+                .totalAmount(order.getTotalAmount())
+                .items(order.getItems().stream()
+                        .map(item -> OrderPlacedEvent.Item.builder()
+                                .dishId(item.getDishId())
+                                .dishName(item.getDishName())
+                                .quantity(item.getQuantity())
+                                .build())
+                        .toList())
+                .build();
+    }
 }

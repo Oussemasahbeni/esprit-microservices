@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
@@ -24,4 +25,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "where i.dishId = :dishId and o.status not in :terminalStatuses")
     List<Order> findNonTerminalOrdersContainingDish(@Param("dishId") Long dishId,
                                                     @Param("terminalStatuses") List<OrderStatus> terminalStatuses);
+
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.items WHERE o.customerId = :customerId")
+    List<Order> findByCustomerIdFetchItems(@Param("customerId") Long customerId);
+
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.items WHERE o.status = :status")
+    List<Order> findByStatusFetchItems(@Param("status") OrderStatus status);
+
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id")
+    Optional<Order> findByIdFetchItems(@Param("id") Long id);
 }
