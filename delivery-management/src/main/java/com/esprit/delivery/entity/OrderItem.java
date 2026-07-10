@@ -1,18 +1,18 @@
 package com.esprit.delivery.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.math.BigDecimal;
+import lombok.*;
 
 /**
  * A single line item within a delivery {@link Order}.
- *
+ * <p>
  * Note: the dish itself is NOT owned by this microservice. Only the
  * {@code dishId} (foreign reference to MS2 - Menu Management Service) and a
  * denormalized snapshot of its name/price are stored here, so that an order's
@@ -35,25 +35,33 @@ public class OrderItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
-    @JsonIgnore
+    @JsonBackReference
     private Order order;
 
-    /** Reference to the dish in the Menu Management Service (MS2). */
+    /**
+     * Reference to the dish in the Menu Management Service (MS2).
+     */
     @Column(nullable = false)
     private Long dishId;
 
-    /** Snapshot of the dish name at order time (denormalized for history/display). */
+    /**
+     * Snapshot of the dish name at order time (denormalized for history/display).
+     */
     @Column(nullable = false)
     private String dishName;
 
-    /** Snapshot of the unit price at order time. */
+    /**
+     * Snapshot of the unit price at order time.
+     */
     @Column(nullable = false)
     private BigDecimal unitPrice;
 
     @Column(nullable = false)
     private Integer quantity;
 
-    /** Optional customer notes for this item (e.g. "no onions"). */
+    /**
+     * Optional customer notes for this item (e.g. "no onions").
+     */
     private String notes;
 
     public BigDecimal getSubTotal() {
