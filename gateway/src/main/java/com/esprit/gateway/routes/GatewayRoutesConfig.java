@@ -67,6 +67,13 @@ public class GatewayRoutesConfig {
                 .before(rewritePath("/reservation/v3/api-docs", "/v3/api-docs"))
                 .filter(lb("reservation"))
                 .filter(circuitBreaker("reservation", URI.create("forward:/fallback/reservation")))
+                .build())
+        .and(
+            route("ai-service")
+                .route(path("/api/ai/**", "/ai-service/v3/api-docs"), http())
+                .before(rewritePath("/ai-service/v3/api-docs", "/openapi.json"))
+                .filter(lb("ai-service"))
+                .filter(circuitBreaker("ai-service", URI.create("forward:/fallback/ai-service")))
                 .build());
   }
 }
