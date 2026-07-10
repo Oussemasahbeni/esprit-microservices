@@ -27,6 +27,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @EntityGraph(attributePaths = {"table"})
     List<Reservation> findByReservationDate(LocalDate reservationDate);
 
+    @EntityGraph(attributePaths = {"table"})
+    List<Reservation> findByReservationDateBetween(LocalDate startDate, LocalDate endDate);
+
     @Query("SELECT r FROM Reservation r WHERE r.reservationDate = :date AND r.status IN (com.esprit.reservation.entity.ReservationStatus.CONFIRMED, com.esprit.reservation.entity.ReservationStatus.SEATED)")
     List<Reservation> findConfirmedAndSeatedReservationsOnDate(@Param("date") LocalDate date);
 

@@ -2,6 +2,7 @@ package com.esprit.reservation.service;
 
 import com.esprit.reservation.entity.Reservation;
 import com.esprit.reservation.entity.RestaurantTable;
+import com.esprit.reservation.entity.TableStatus;
 import com.esprit.reservation.domain.GuestsCount;
 import com.esprit.reservation.repository.ReservationRepository;
 import com.esprit.reservation.repository.RestaurantTableRepository;
@@ -25,7 +26,7 @@ public class AvailabilityService {
     public List<RestaurantTable> findAvailableTables(LocalDate date, LocalTime startTime, LocalTime endTime, GuestsCount guestsCount) {
         // Find tables that have enough capacity and are active
         List<RestaurantTable> candidateTables = tableRepository
-                .findByCapacityGreaterThanEqualAndActiveTrueOrderByCapacityAsc(guestsCount);
+                .findByCapacityGreaterThanEqualAndActiveTrueOrderByCapacityAsc(guestsCount.value());
 
         // Find active reservations overlapping with the requested interval
         List<Reservation> overlappingReservations = reservationRepository
@@ -37,9 +38,10 @@ public class AvailabilityService {
                 .filter(id -> id != null)
                 .collect(Collectors.toSet());
 
-        // Return candidate tables that are not occupied
+        // Return candidate tables that are not occupied and not physically out of service
         return candidateTables.stream()
                 .filter(table -> !occupiedTableIds.contains(table.getId()))
+                .filter(table -> table.getStatus() != TableStatus.OUT_OF_SERVICE)
                 .collect(Collectors.toList());
     }
 }

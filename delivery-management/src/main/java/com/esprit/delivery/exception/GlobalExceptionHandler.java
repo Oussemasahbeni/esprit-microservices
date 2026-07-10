@@ -16,6 +16,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -165,6 +166,13 @@ public class GlobalExceptionHandler {
             AccessDeniedException ex, HttpServletRequest request) {
         log.warn("Access denied: {}", ex.getMessage());
         return buildResponse(FORBIDDEN, ACCESS_DENIED.name(), ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoResourceFound(
+            NoResourceFoundException ex, HttpServletRequest request) {
+        log.warn("No resource found: {}", ex.getMessage());
+        return buildResponse(NOT_FOUND, "RESOURCE_NOT_FOUND", ex.getMessage(), request);
     }
 
     @ExceptionHandler(Exception.class)

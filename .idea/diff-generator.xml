@@ -3,7 +3,7 @@
   <component name="DiffGenerationConfig">
     <option name="snapshotDb" value="false" />
     <option name="snapshotModelValue" value="delivery-management:delivery-management" />
-    <option name="sourceModelValue" value="employee-management:employee-management" />
-    <option name="targetDbValue" value="7ff6a7e1-9a7e-4833-a845-6299e7c7860f__employee_management_db_public" />
+    <option name="sourceModelValue" value="delivery-management:delivery-management" />
+    <option name="targetDbValue" value="a336ec18-b779-4ae1-83ef-e7bff02aac42__delivery_management_db_public" />
   </component>
 </project>

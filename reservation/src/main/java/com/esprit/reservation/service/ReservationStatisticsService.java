@@ -26,7 +26,20 @@ public class ReservationStatisticsService {
     private final AvailabilityService availabilityService;
 
     public Map<String, Object> getDailyStats(LocalDate date) {
-        List<Reservation> reservations = reservationRepository.findByReservationDate(date);
+        Map<String, Object> stats = buildStats(reservationRepository.findByReservationDate(date), date);
+        stats.put("date", date);
+        return stats;
+    }
+
+    public Map<String, Object> getStatsForRange(LocalDate startDate, LocalDate endDate) {
+        Map<String, Object> stats = buildStats(
+                reservationRepository.findByReservationDateBetween(startDate, endDate), LocalDate.now());
+        stats.put("startDate", startDate);
+        stats.put("endDate", endDate);
+        return stats;
+    }
+
+    private Map<String, Object> buildStats(List<Reservation> reservations, LocalDate availabilityReferenceDate) {
         List<RestaurantTable> allTables = tableRepository.findByActiveTrue();
 
         long total = reservations.size();
@@ -36,13 +49,12 @@ public class ReservationStatisticsService {
         long cancelled = reservations.stream().filter(r -> r.getStatus() == ReservationStatus.CANCELLED).count();
         long noShows = reservations.stream().filter(r -> r.getStatus() == ReservationStatus.NO_SHOW).count();
 
-        // Calculate available tables right now
+        // Calculate available tables right now (a point-in-time snapshot, independent of the reporting period)
         LocalTime now = LocalTime.now();
         List<RestaurantTable> availableTablesNow = availabilityService
-                .findAvailableTables(date, now, now.plusHours(2), GuestsCount.of(1));
+                .findAvailableTables(availabilityReferenceDate, now, now.plusHours(2), GuestsCount.of(1));
 
         Map<String, Object> stats = new HashMap<>();
-        stats.put("date", date);
         stats.put("totalReservations", total);
         stats.put("confirmedCount", confirmed);
         stats.put("seatedCount", seated);

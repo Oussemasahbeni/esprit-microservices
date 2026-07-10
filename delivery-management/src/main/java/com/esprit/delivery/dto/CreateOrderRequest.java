@@ -1,9 +1,8 @@
 package com.esprit.delivery.dto;
 
 import com.esprit.delivery.entity.DeliveryAddress;
-import lombok.*;
-
 import java.util.List;
+import lombok.*;
 
 /**
  * Request payload for {@code POST /orders}.
@@ -16,8 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class CreateOrderRequest {
-
-    private Long customerId;
+    private String customerId;
     private List<OrderItemRequest> items;
     private DeliveryAddress deliveryAddress;
 

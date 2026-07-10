@@ -3,14 +3,13 @@ package com.esprit.delivery.entity;
 import com.esprit.delivery.enums.OrderStatus;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 /**
  * Aggregate root of the Delivery Management Service.
@@ -31,7 +30,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Order {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -40,7 +38,7 @@ public class Order {
      * Keycloak subject (user id) of the customer who placed the order.
      */
     @Column(nullable = false)
-    private Long customerId;
+    private String customerId;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -58,9 +56,6 @@ public class Order {
     @Column(nullable = false)
     private BigDecimal totalAmount;
 
-    /**
-     * Currently assigned driver, if any. Null while the order is unassigned.
-     */
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private DeliveryAssignment assignment;
 
@@ -71,9 +66,5 @@ public class Order {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    /**
-     * Timestamp at which the order reached DELIVERED status.
-     */
     private LocalDateTime deliveredAt;
 }
-

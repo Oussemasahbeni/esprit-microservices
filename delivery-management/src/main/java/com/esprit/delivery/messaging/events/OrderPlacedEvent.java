@@ -13,18 +13,18 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderPlacedEvent {
-    Long orderId;
-    Long customerId;
-    BigDecimal totalAmount;
-    List<Item> items;
+  Long orderId;
+  String customerId;
+  BigDecimal totalAmount;
+  List<Item> items;
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Item {
-        Long dishId;
-        String dishName;
-        Integer quantity;
-    }
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class Item {
+    Long dishId;
+    String dishName;
+    Integer quantity;
+  }
 }

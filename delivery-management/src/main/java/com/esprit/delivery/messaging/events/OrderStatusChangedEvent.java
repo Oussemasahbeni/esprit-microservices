@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderStatusChangedEvent {
-    Long orderId;
-    Long customerId;
-    OrderStatus previousStatus;
-    OrderStatus newStatus;
+  Long orderId;
+  String customerId;
+  OrderStatus previousStatus;
+  OrderStatus newStatus;
 }

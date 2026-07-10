@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderFlaggedForReviewEvent {
-    Long orderId;
-    Long customerId;
-    Long dishId;
-    String reason;
+  Long orderId;
+  String customerId;
+  Long dishId;
+  String reason;
 }

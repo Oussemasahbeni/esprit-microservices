@@ -50,6 +50,10 @@ public class ReservationService {
         return reservationRepository.findByReservationDate(date);
     }
 
+    public List<Reservation> getReservationsByDateRange(LocalDate startDate, LocalDate endDate) {
+        return reservationRepository.findByReservationDateBetween(startDate, endDate);
+    }
+
     public Optional<Reservation> getReservationById(Long id) {
         return reservationRepository.findById(id);
     }
@@ -132,6 +136,10 @@ public class ReservationService {
             reservation.getPreOrderItems().addAll(preOrderItems);
 
             Reservation saved = reservationRepository.save(reservation);
+            if (date.equals(LocalDate.now())) {
+                assignedTable.setStatus(TableStatus.RESERVED);
+                tableRepository.save(assignedTable);
+            }
             eventPublisher.publishReservationConfirmed(saved);
 
             return BookingResult.builder()
@@ -218,6 +226,7 @@ public class ReservationService {
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found with ID: " + id));
         reservation.cancel(reason, changedBy);
         Reservation saved = reservationRepository.save(reservation);
+        releaseTable(reservation);
         eventPublisher.publishReservationCancelled(saved);
 
         // Process waiting list for the released table
@@ -231,7 +240,13 @@ public class ReservationService {
         Reservation reservation = getReservationById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found with ID: " + id));
         reservation.seat(changedBy);
-        return reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+        if (reservation.getTable() != null) {
+            RestaurantTable table = reservation.getTable();
+            table.setStatus(TableStatus.OCCUPIED);
+            tableRepository.save(table);
+        }
+        return saved;
     }
 
     @Transactional
@@ -240,6 +255,7 @@ public class ReservationService {
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found with ID: " + id));
         reservation.complete(changedBy);
         Reservation saved = reservationRepository.save(reservation);
+        releaseTable(reservation);
 
         // released table could accommodate waitlisted customers
         processWaitingList(reservation.getReservationDate());
@@ -253,11 +269,40 @@ public class ReservationService {
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found with ID: " + id));
         reservation.markNoShow(changedBy);
         Reservation saved = reservationRepository.save(reservation);
+        releaseTable(reservation);
 
         // released table could accommodate waitlisted customers
         processWaitingList(reservation.getReservationDate());
 
         return saved;
+    }
+
+    /**
+     * Frees a reservation's table back to AVAILABLE — unless another still-active
+     * (CONFIRMED/SEATED) reservation is also using it, e.g. a same-day back-to-back booking.
+     */
+    private void releaseTable(Reservation reservation) {
+        RestaurantTable table = reservation.getTable();
+        if (table == null) {
+            return;
+        }
+        releaseTable(reservation.getId(), table, reservation.getReservationDate(),
+                reservation.getStartTime(), reservation.getEndTime());
+    }
+
+    private void releaseTable(Long excludeReservationId, RestaurantTable table,
+                               LocalDate date, LocalTime startTime, LocalTime endTime) {
+        if (table.getStatus() == TableStatus.OUT_OF_SERVICE) {
+            return;
+        }
+        List<Reservation> overlaps = reservationRepository.findOverlappingReservationsForTable(
+                table.getId(), date, startTime, endTime
+        );
+        boolean stillActive = overlaps.stream().anyMatch(r -> !r.getId().equals(excludeReservationId));
+        if (!stillActive) {
+            table.setStatus(TableStatus.AVAILABLE);
+            tableRepository.save(table);
+        }
     }
 
     @Transactional
@@ -282,8 +327,22 @@ public class ReservationService {
             throw new IllegalArgumentException("Table is already reserved for an overlapping time slot.");
         }
 
+        RestaurantTable previousTable = reservation.getTable();
         reservation.assignTable(table, changedBy);
-        return reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+
+        if (reservation.getStatus() == ReservationStatus.SEATED) {
+            table.setStatus(TableStatus.OCCUPIED);
+            tableRepository.save(table);
+        } else if (reservation.getReservationDate().equals(LocalDate.now())) {
+            table.setStatus(TableStatus.RESERVED);
+            tableRepository.save(table);
+        }
+        if (previousTable != null && !previousTable.getId().equals(table.getId())) {
+            releaseTable(id, previousTable, reservation.getReservationDate(),
+                    reservation.getStartTime(), reservation.getEndTime());
+        }
+        return saved;
     }
 
     @Transactional
@@ -292,52 +351,74 @@ public class ReservationService {
                 .findByRequestedDateAndStatusOrderByPriorityDescCreatedAtAsc(date, WaitlistStatus.WAITING);
 
         for (WaitlistEntry entry : waitlist) {
-            LocalTime start = entry.getRequestedTime();
-            LocalTime end = start.plusHours(2);
-
-            List<RestaurantTable> availableTables = availabilityService
-                    .findAvailableTables(date, start, end, entry.getGuestsCount());
-
-            if (!availableTables.isEmpty()) {
-                RestaurantTable assignedTable = availableTables.stream()
-                        .min((t1, t2) -> Integer.compare(t1.getCapacity(), t2.getCapacity()))
-                        .get();
-
-                String generatedCodeStr = "RES-" + date.toString().replace("-", "") + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-                ReservationCode code = ReservationCode.of(generatedCodeStr);
-
-                 Reservation reservation = Reservation.builder()
-                        .reservationCode(code)
-                        .keycloakUserId(entry.getKeycloakUserId())
-                        .customerName(entry.getCustomerName())
-                        .customerEmail(entry.getCustomerEmail())
-                        .customerPhone(entry.getCustomerPhone())
-                        .table(assignedTable)
-                        .reservationDate(date)
-                        .startTime(start)
-                        .endTime(end)
-                        .guestsCount(entry.getGuestsCount())
-                        .status(ReservationStatus.CONFIRMED)
-                        .specialRequests(entry.getNotes())
-                        .build();
-
-                // Record history
-                reservation.getStatusHistory().add(
-                    ReservationStatusHistory.builder()
-                        .reservation(reservation)
-                        .oldStatus(null)
-                        .newStatus(ReservationStatus.CONFIRMED)
-                        .changedBy("SYSTEM")
-                        .reason("Promoted from waitlist")
-                        .build()
-                );
-
-                reservationRepository.save(reservation);
-
-                entry.setStatus(WaitlistStatus.PROMOTED);
-                waitlistRepository.save(entry);
-            }
+            tryPromoteEntry(entry);
         }
+    }
+
+    /**
+     * Attempts to promote a specific waitlist entry right now. Unlike {@link #processWaitingList},
+     * this reports back whether a table was actually found — the caller (a manager clicking
+     * "Promote") needs to know if their click did anything, not just get a silent no-op.
+     */
+    @Transactional
+    public boolean promoteWaitlistEntryNow(WaitlistEntry entry) {
+        return tryPromoteEntry(entry);
+    }
+
+    private boolean tryPromoteEntry(WaitlistEntry entry) {
+        LocalDate date = entry.getRequestedDate();
+        LocalTime start = entry.getRequestedTime();
+        LocalTime end = start.plusHours(2);
+
+        List<RestaurantTable> availableTables = availabilityService
+                .findAvailableTables(date, start, end, entry.getGuestsCount());
+
+        if (availableTables.isEmpty()) {
+            return false;
+        }
+
+        RestaurantTable assignedTable = availableTables.stream()
+                .min((t1, t2) -> Integer.compare(t1.getCapacity(), t2.getCapacity()))
+                .get();
+
+        String generatedCodeStr = "RES-" + date.toString().replace("-", "") + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        ReservationCode code = ReservationCode.of(generatedCodeStr);
+
+        Reservation reservation = Reservation.builder()
+                .reservationCode(code)
+                .keycloakUserId(entry.getKeycloakUserId())
+                .customerName(entry.getCustomerName())
+                .customerEmail(entry.getCustomerEmail())
+                .customerPhone(entry.getCustomerPhone())
+                .table(assignedTable)
+                .reservationDate(date)
+                .startTime(start)
+                .endTime(end)
+                .guestsCount(entry.getGuestsCount())
+                .status(ReservationStatus.CONFIRMED)
+                .specialRequests(entry.getNotes())
+                .build();
+
+        // Record history
+        reservation.getStatusHistory().add(
+            ReservationStatusHistory.builder()
+                .reservation(reservation)
+                .oldStatus(null)
+                .newStatus(ReservationStatus.CONFIRMED)
+                .changedBy("SYSTEM")
+                .reason("Promoted from waitlist")
+                .build()
+        );
+
+        reservationRepository.save(reservation);
+        if (date.equals(LocalDate.now())) {
+            assignedTable.setStatus(TableStatus.RESERVED);
+            tableRepository.save(assignedTable);
+        }
+
+        entry.setStatus(WaitlistStatus.PROMOTED);
+        waitlistRepository.save(entry);
+        return true;
     }
 
     // Helper classes for result payload wrapping

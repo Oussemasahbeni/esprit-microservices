@@ -6,10 +6,9 @@ import com.esprit.delivery.entity.Order;
 import com.esprit.delivery.enums.OrderStatus;
 import com.esprit.delivery.service.OrderService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/deliveries/orders")
@@ -45,8 +44,8 @@ public class OrderController {
     /**
      * Get all orders with a given status.
      */
-    @GetMapping("/status/{status}")
-    public List<Order> getOrdersByStatus(@PathVariable OrderStatus status) {
+    @GetMapping("/status")
+    public List<Order> getOrdersByStatus(@RequestParam(required = false) OrderStatus status) {
         return orderService.getOrdersByStatus(status);
     }
 

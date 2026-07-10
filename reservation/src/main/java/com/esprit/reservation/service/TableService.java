@@ -37,10 +37,27 @@ public class TableService {
         return tableRepository.save(table);
     }
 
+    /**
+     * Manual status changes are only meant for genuinely physical states (table broken,
+     * closed for cleaning) — RESERVED/OCCUPIED are derived automatically from the reservation
+     * lifecycle (see ReservationService) and must not be set or cleared by hand here.
+     */
     @Transactional
     public RestaurantTable updateTableStatus(Long id, TableStatus status) {
         RestaurantTable table = getTableById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Table not found with ID: " + id));
+
+        TableStatus current = table.getStatus();
+
+        if (status == TableStatus.RESERVED || status == TableStatus.OCCUPIED) {
+            throw new IllegalArgumentException(
+                    "RESERVED and OCCUPIED are set automatically by the reservation lifecycle and cannot be set manually.");
+        }
+        if ((current == TableStatus.RESERVED || current == TableStatus.OCCUPIED) && status != current) {
+            throw new IllegalArgumentException(
+                    "This table is tied to an active reservation — seat, complete, or cancel that reservation instead of changing the table status directly.");
+        }
+
         table.setStatus(status);
         return tableRepository.save(table);
     }
